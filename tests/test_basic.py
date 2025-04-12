@@ -1,5 +1,6 @@
 import unittest
-from todo_project import app
+from todo_project.todo_project import app
+
 
 class TestBasic(unittest.TestCase):
     def test_home_status(self):
