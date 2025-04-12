@@ -27,3 +27,19 @@ jobs:
       - name: Executar testes
         run: |
           python -m unittest discover -s tests -p "*.py"
+
+      - name: Bandit - Análise Estática de Código
+        run: |
+          pip install bandit
+          bandit -r todo_project
+
+      - name: OWASP Dependency-Check - Análise de Dependências
+        run: |
+          docker pull owasp/dependency-check
+          docker run --rm \
+            -v ${{ github.workspace }}:/src \
+            owasp/dependency-check \
+            --project "FlaskApp" \
+            --scan /src \
+            --format "HTML" \
+            --out /src/reports
