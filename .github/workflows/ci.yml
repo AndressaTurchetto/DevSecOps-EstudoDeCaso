@@ -42,12 +42,12 @@ jobs:
           docker pull owasp/dependency-check
           docker run --rm \
             -v ${{ github.workspace }}:/src \
-            -v ${{ github.workspace }}/reports:/report \
+            -v ${{ github.workspace }}:/report \
             owasp/dependency-check \
             --project "FlaskApp" \
             --scan /src \
             --format "HTML" \
-            --out /report
+            --out /report/reports
 
 
       - name: Upload do relatório de dependências
