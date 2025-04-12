@@ -39,16 +39,16 @@ jobs:
 
       - name: OWASP Dependency-Check - Análise de Dependências
         run: |
+          mkdir -p reports
           docker pull owasp/dependency-check
           docker run --rm \
             -v ${{ github.workspace }}:/src \
-            -v ${{ github.workspace }}:/report \
+            -v ${{ github.workspace }}/reports:/report \
             owasp/dependency-check \
             --project "FlaskApp" \
             --scan /src \
             --format "HTML" \
-            --out /report/reports
-
+            --out /report
 
       - name: Upload do relatório de dependências
         uses: actions/upload-artifact@v4
