@@ -26,21 +26,31 @@ jobs:
 
       - name: Executar testes
         run: |
-          export PYTHONPATH=${{ github.workspace }}/todo_project
-          python todo_project/tests/test_basic.py
+          export PYTHONPATH=$PYTHONPATH:${{ github.workspace }}/todo_project
+          python -m unittest discover -s todo_project/tests -p "test_*.py"
 
       - name: Bandit - Análise Estática de Código
         run: |
           pip install bandit
-          bandit -r todo_project
+          bandit -r todo_project --exit-zero
+
+      - name: Criar diretório de relatório
+        run: mkdir -p reports
 
       - name: OWASP Dependency-Check - Análise de Dependências
         run: |
           docker pull owasp/dependency-check
           docker run --rm \
             -v ${{ github.workspace }}:/src \
+            -v ${{ github.workspace }}/reports:/report \
             owasp/dependency-check \
             --project "FlaskApp" \
-            --scan /src \
+            --scan /src/requirements.txt \
             --format "HTML" \
-            --out /src/reports
+            --out /report
+
+      - name: Upload do relatório de dependências
+        uses: actions/upload-artifact@v3
+        with:
+          name: dependency-check-report
+          path: reports
