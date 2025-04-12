@@ -27,7 +27,7 @@ jobs:
       - name: Executar testes
         run: |
           export PYTHONPATH=${{ github.workspace }}/todo_project
-          python tests/test_basic.py
+          python todo_project/tests/test_basic.py
 
       - name: Bandit - Análise Estática de Código
         run: |
