@@ -1,65 +1,4 @@
-# name: Flask CI/CD
-
-# on:
-#   push:
-#     branches: [ dev ]
-#   pull_request:
-#     branches: [ dev ]
-
-# jobs:
-#   build-and-test:
-#     runs-on: ubuntu-latest
-
-#     steps:
-#       - name: Checkout do código
-#         uses: actions/checkout@v3
-
-#       - name: Setup Python
-#         uses: actions/setup-python@v4
-#         with:
-#           python-version: '3.10'
-
-#       - name: Instalar dependências
-#         run: |
-#           python -m pip install --upgrade pip
-#           pip install -r requirements.txt
-
-#       - name: Executar testes
-#         run: |
-#           export PYTHONPATH=$PYTHONPATH:${{ github.workspace }}/todo_project
-#           python -m unittest discover -s todo_project/tests -p "test_*.py"
-
-#       - name: Bandit - Análise Estática de Código
-#         run: |
-#           pip install bandit
-#           bandit -r todo_project --exit-zero
-
-#       - name: Criar diretório de relatório
-#         run: mkdir -p reports
-
-#       - name: OWASP Dependency-Check - Análise de Dependências
-#         run: |
-#           docker pull owasp/dependency-check
-#           docker run --rm \
-#             -v ${{ github.workspace }}:/src \
-#             -v ${{ github.workspace }}/reports:/report \
-#             owasp/dependency-check \
-#             --project "FlaskApp" \
-#             --scan /src \
-#             --format "HTML" \
-#             --out /report
-
-
-#       - name: Upload do relatório de dependências
-#         uses: actions/upload-artifact@v4
-#         with:
-#           name: dependency-check-report
-#           path: reports
-
-
-# Teste
-
-name: Flask CI/CD Pipeline
+name: Flask CI/CD
 
 on:
   push:
@@ -69,7 +8,6 @@ on:
 
 jobs:
   build-and-test:
-    name: Build, Testes e Segurança
     runs-on: ubuntu-latest
 
     steps:
@@ -86,57 +24,35 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Executar testes unitários
+      - name: Executar testes
         run: |
+          export PYTHONPATH=$PYTHONPATH:${{ github.workspace }}/todo_project
           python -m unittest discover -s todo_project/tests -p "test_*.py"
 
-      - name: Análise Estática com Bandit
+      - name: Bandit - Análise Estática de Código
         run: |
           pip install bandit
-          bandit -r . -o bandit_report.txt -f txt
+          bandit -r todo_project --exit-zero
 
-      - name: Análise de dependências com OWASP Dependency-Check
+      - name: Criar diretório de relatório
+        run: mkdir -p reports
+
+      - name: OWASP Dependency-Check - Análise de Dependências
         run: |
+          docker pull owasp/dependency-check
           docker run --rm \
-            -v $(pwd):/src \
+            -v ${{ github.workspace }}:/src \
+            -v ${{ github.workspace }}/reports:/report \
             owasp/dependency-check \
-            --project "Gerenciador de Tarefas" \
+            --project "FlaskApp" \
             --scan /src \
             --format "HTML" \
-            --out /src/dependency-check-report
+            --out /report
 
-      - name: Build da imagem Docker
-        run: |
-          docker build -t gerenciador-tarefas:${{ github.sha }} .
 
-      - name: Rodar container com Docker Compose
-        run: |
-          docker-compose up -d
+      - name: Upload do relatório de dependências
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: reports
 
-  dast-analysis:
-    name: Análise Dinâmica (OWASP ZAP)
-    needs: build-and-test
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Rodar OWASP ZAP Scan
-        run: |
-          docker run -u zap --network="host" -v $(pwd):/zap/wrk \
-          ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
-          -t http://host.docker.internal:8080 \
-          -r zap_report.html
-
-  entrega-continua:
-    name: Deploy e Monitoramento
-    needs: dast-analysis
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Deploy para ambiente de stage (simulado)
-        run: echo "Deploy para ambiente de stage realizado com sucesso!"
-
-      - name: Simulação de Monitoramento (logs e alertas)
-        run: |
-          echo "Monitorando logs..."
-          echo "Logs encaminhados para syslog"
-          echo "Alertas configurados com Loki, Prometheus e Alertmanager (simulado)"
