@@ -88,7 +88,7 @@ jobs:
 
       - name: Executar testes unitários
         run: |
-          python -m unittest discover -s tests -p "*.py"
+          python -m unittest discover -s todo_project/tests -p "test_*.py"
 
       - name: Análise Estática com Bandit
         run: |
