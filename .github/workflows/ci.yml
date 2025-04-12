@@ -47,9 +47,8 @@ jobs:
             --project "FlaskApp" \
             --scan /src \
             --format "HTML" \
-            --enableExperimental \
-            --experimentalAnalyzers python \
             --out /report
+
 
       - name: Upload do relatório de dependências
         uses: actions/upload-artifact@v4
