@@ -17,7 +17,7 @@ Execute the following command to install the required third party libraries:
 
 1. Clone the repository using the following command
     
-    ```git clone https://github.com/AdityaBagad/Task-Manager-using-Flask.git```
+    ```git clone https://github.com/AndressaTurchetto/DevSecOps-EstudoDeCaso.git```
 
 2. Install the dependencies using
 
