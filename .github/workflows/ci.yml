@@ -1,4 +1,4 @@
-name: Flask CI/CD com SAST e DAST
+name: Flask CI/CD
 
 on:
   push:
@@ -24,19 +24,22 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Executar testes unitários
+      - name: Executar testes
         run: |
           export PYTHONPATH=$PYTHONPATH:${{ github.workspace }}/todo_project
           python -m unittest discover -s todo_project/tests -p "test_*.py"
 
-      - name: Bandit - Análise Estática (SAST)
+      - name: Bandit - Análise Estática de Código
         run: |
           pip install bandit
           bandit -r todo_project --exit-zero
 
-      - name: Dependency-Check - Análise de Dependências
+      - name: Criar diretório de relatório
+        run: mkdir -p dependency-check-report
+
+      - name: OWASP Dependency-Check - Análise de Dependências
         run: |
-          mkdir -p dependency-check-report
+          docker pull owasp/dependency-check
           docker run --rm \
             -v ${{ github.workspace }}:/project \
             owasp/dependency-check \
@@ -46,13 +49,13 @@ jobs:
             --disableAssembly --disableRetireJS --disableCentral \
             --out /project/dependency-check-report || true
 
-      - name: Upload do relatório do Dependency-Check
+      - name: Upload do relatório de dependências
         uses: actions/upload-artifact@v4
         with:
           name: dependency-check-report
           path: dependency-check-report
 
-  deploy-and-test-zap:
+  deploy-to-staging:
     runs-on: ubuntu-latest
     needs: build-and-test
 
@@ -60,30 +63,42 @@ jobs:
       - name: Checkout do código
         uses: actions/checkout@v3
 
-      - name: Criar rede Docker customizada
-        run: docker network create zapnet || true
+      - name: Criar rede para integração ZAP
+        run: docker network create zapnet
 
-      - name: Build da aplicação Flask
+      - name: Build Docker da aplicação
         run: docker build -t flaskapp .
 
-      - name: Subir container da aplicação na rede zapnet
+      - name: Subir container Flask em background
         run: docker run -d --name flaskapp_container --network zapnet -p 8080:8080 flaskapp
 
-      - name: Aguardar aplicação iniciar
+  dast-zap:
+    runs-on: ubuntu-latest
+    needs: deploy-to-staging
+
+    steps:
+      - name: Esperar aplicação iniciar
         run: sleep 10
 
-      - name: Executar ZAP apontando para flaskapp_container
+      - name: Executar OWASP ZAP - DAST
         run: |
-          docker run --rm \
-            --network zapnet \
-            -u root \
-            -v ${{ github.workspace }}:/zap/wrk \
-            ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
+          docker run --rm --network zapnet -u root -v ${{ github.workspace }}:/zap/wrk \
+            -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
             -t http://flaskapp_container:8080 \
             -r zap_report.html
 
-      - name: Upload do relatório do ZAP
+      - name: Upload do relatório ZAP
         uses: actions/upload-artifact@v4
         with:
           name: zap-report
           path: zap_report.html
+
+  monitoramento:
+    runs-on: ubuntu-latest
+    needs: dast-zap
+    steps:
+      - name: Simulação de Monitoramento Pós-Deploy
+        run: |
+          echo "📡 Monitorando logs e atividades da aplicação..."
+          echo "⚠️ Exemplo de alerta: Múltiplas tentativas de login falhadas detectadas"
+          echo "✅ Monitoramento concluído - considere integrar Loki, Grafana, Sentry ou Prometheus futuramente"
