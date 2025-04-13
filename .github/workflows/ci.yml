@@ -93,34 +93,35 @@ jobs:
       - name: Subir container Flask em background
         run: docker run -d --name flaskapp_container --network zapnet -p 8080:8080 flaskapp
 
-    dast-zap:
+          path: zap_report.html
+
+  dast-zap:
     runs-on: ubuntu-latest
     needs: deploy-to-staging
 
-    steps:
-      - name: Criar rede para integração ZAP
-        run: docker network create zapnet
+  steps:
+    - name: Criar rede para integração ZAP
+      run: docker network create zapnet
 
-      - name: Subir container da aplicação (ambiente DAST isolado)
-        run: |
-          docker build -t flaskapp .
-          docker run -d --name flaskapp_container --network zapnet -p 8080:8080 flaskapp
+    - name: Subir container da aplicação (ambiente DAST isolado)
+      run: |
+        docker build -t flaskapp .
+        docker run -d --name flaskapp_container --network zapnet -p 8080:8080 flaskapp
 
-      - name: Esperar aplicação iniciar
-        run: sleep 10
+    - name: Esperar aplicação iniciar
+      run: sleep 10
 
-      - name: Executar OWASP ZAP - DAST
-        run: |
-          docker run --rm --network zapnet -u root -v ${{ github.workspace }}:/zap/wrk \
-            -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
-            -t http://flaskapp_container:8080 \
-            -r zap_report.html
+    - name: Executar OWASP ZAP - DAST
+      run: |
+        docker run --rm --network zapnet -u root -v ${{ github.workspace }}:/zap/wrk \
+          -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
+          -t http://flaskapp_container:8080 \            -r zap_report.html
 
-      - name: Upload do relatório ZAP
-        uses: actions/upload-artifact@v4
-        with:
-          name: zap-report
-          path: zap_report.html
+    - name: Upload do relatório ZAP
+      uses: actions/upload-artifact@v4
+      with:
+        name: zap-report
+        path: zap_report.html
 
   monitoramento:
     runs-on: ubuntu-latest
@@ -136,19 +137,3 @@ jobs:
       - name: Verificar logs com script
         run: |
           python monitor/check_logs.py || echo "Nenhuma anomalia detectada"
-
-
-  monitoramento:
-    runs-on: ubuntu-latest
-    needs: dast-zap
-
-    steps:
-      - name: Simulação de Monitoramento Pós-Deploy
-        run: |
-          echo "Monitorando logs e atividades da aplicação..."
-          echo "Exemplo de alerta: Múltiplas tentativas de login falhadas detectadas"
-          echo "Monitoramento concluído - considere integrar Loki, Grafana, Sentry ou Prometheus futuramente"
-
-      - name: Verificar logs com script
-        run: |
-          python monitor/check_logs.py || echo "Nenhuma anomalia detectada."
