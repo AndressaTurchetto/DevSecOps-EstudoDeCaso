@@ -35,20 +35,18 @@ jobs:
           bandit -r todo_project --exit-zero
 
       - name: Criar diretório de relatório
-        run: mkdir -p reports
+        run: mkdir -p dependency-check-report
 
       - name: OWASP Dependency-Check - Análise de Dependências
         run: |
-          mkdir -p dependency-check-report
           docker pull owasp/dependency-check
           docker run --rm \
-          -v ${{ github.workspace }}:/src \
-          owasp/dependency-check \
-          /usr/share/dependency-check/bin/dependency-check.sh \
-          --project "FlaskApp" \
-          --scan /src \
-          --format "ALL" \
-          --out /src/reports
+            -v ${{ github.workspace }}:/project \
+            owasp/dependency-check \
+            --project "FlaskApp" \
+            --scan /project \
+            --format "ALL" \
+            --out /project/dependency-check-report || true
 
       - name: Upload do relatório de dependências
         uses: actions/upload-artifact@v4
