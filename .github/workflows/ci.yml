@@ -93,11 +93,19 @@ jobs:
       - name: Subir container Flask em background
         run: docker run -d --name flaskapp_container --network zapnet -p 8080:8080 flaskapp
 
-  dast-zap:
+    dast-zap:
     runs-on: ubuntu-latest
     needs: deploy-to-staging
 
     steps:
+      - name: Criar rede para integração ZAP
+        run: docker network create zapnet
+
+      - name: Subir container da aplicação (novamente no mesmo job)
+        run: |
+          docker build -t flaskapp .
+          docker run -d --name flaskapp_container --network zapnet -p 8080:8080 flaskapp
+
       - name: Esperar aplicação iniciar
         run: sleep 10
 
@@ -113,6 +121,7 @@ jobs:
         with:
           name: zap-report
           path: zap_report.html
+
 
   monitoramento:
     runs-on: ubuntu-latest
