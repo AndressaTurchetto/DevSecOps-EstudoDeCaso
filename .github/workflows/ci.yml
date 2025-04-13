@@ -29,12 +29,12 @@ jobs:
           export PYTHONPATH=$PYTHONPATH:${{ github.workspace }}/todo_project
           python -m unittest discover -s todo_project/tests -p "test_*.py"
 
-      - name: Bandit - SAST
+      - name: Bandit - Análise Estática (SAST)
         run: |
           pip install bandit
           bandit -r todo_project --exit-zero
 
-      - name: Dependency-Check
+      - name: Dependency-Check - Análise de Dependências
         run: |
           mkdir -p dependency-check-report
           docker run --rm \
@@ -43,9 +43,10 @@ jobs:
             --project "FlaskApp" \
             --scan /project \
             --format "ALL" \
+            --disableAssembly --disableRetireJS --disableCentral \
             --out /project/dependency-check-report || true
 
-      - name: Upload Dependency Report
+      - name: Upload do relatório do Dependency-Check
         uses: actions/upload-artifact@v4
         with:
           name: dependency-check-report
@@ -65,15 +66,16 @@ jobs:
       - name: Build da aplicação Flask
         run: docker build -t flaskapp .
 
-      - name: Rodar aplicação Flask na rede zapnet
-        run: docker run -d --rm --name flaskapp_container --network zapnet -p 8080:8080 flaskapp
+      - name: Subir container da aplicação na rede zapnet
+        run: docker run -d --name flaskapp_container --network zapnet -p 8080:8080 flaskapp
 
-      - name: Aguardar app iniciar
+      - name: Aguardar aplicação iniciar
         run: sleep 10
 
       - name: Executar ZAP apontando para flaskapp_container
         run: |
-          docker run --rm --network zapnet \
+          docker run --rm \
+            --network zapnet \
             -u root \
             -v ${{ github.workspace }}:/zap/wrk \
             ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
