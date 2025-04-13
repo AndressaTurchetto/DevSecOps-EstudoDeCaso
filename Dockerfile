@@ -1,16 +1,17 @@
 FROM python:3.10
 
+# Define o diretório de trabalho
 WORKDIR /app
 
+# Copia e instala dependências
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copia o restante dos arquivos do projeto
 COPY . .
 
-ENV FLASK_APP=run.py
-ENV FLASK_RUN_HOST=0.0.0.0
-ENV FLASK_RUN_PORT=8080
-
+# Expõe a porta usada pelo Flask
 EXPOSE 8080
 
-CMD ["flask", "run"]
+# Executa o app diretamente com Python
+CMD ["python", "run.py"]
