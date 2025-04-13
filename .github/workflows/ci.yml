@@ -55,7 +55,7 @@ jobs:
           name: dependency-check-report
           path: dependency-check-report
 
-  deploy-to-staging:
+  deploy-and-test-zap:
     runs-on: ubuntu-latest
     needs: build-and-test
 
@@ -63,7 +63,7 @@ jobs:
       - name: Checkout do código
         uses: actions/checkout@v3
 
-      - name: Criar rede para integração ZAP
+      - name: Criar rede Docker para ZAP
         run: docker network create zapnet
 
       - name: Build Docker da aplicação
@@ -72,11 +72,6 @@ jobs:
       - name: Subir container Flask em background
         run: docker run -d --name flaskapp_container --network zapnet -p 8080:8080 flaskapp
 
-  dast-zap:
-    runs-on: ubuntu-latest
-    needs: deploy-to-staging
-
-    steps:
       - name: Esperar aplicação iniciar
         run: sleep 10
 
@@ -95,7 +90,8 @@ jobs:
 
   monitoramento:
     runs-on: ubuntu-latest
-    needs: dast-zap
+    needs: deploy-and-test-zap
+
     steps:
       - name: Simulação de Monitoramento Pós-Deploy
         run: |
