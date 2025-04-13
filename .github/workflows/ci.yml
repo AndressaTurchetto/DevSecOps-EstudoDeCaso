@@ -63,11 +63,14 @@ jobs:
       - name: Checkout do código
         uses: actions/checkout@v3
 
+      - name: Criar rede para integração ZAP
+        run: docker network create zapnet
+
       - name: Build Docker da aplicação
         run: docker build -t flaskapp .
 
       - name: Subir container Flask em background
-        run: docker run -d -p 8080:8080 --name flaskapp_container flaskapp
+        run: docker run -d --name flaskapp_container --network zapnet -p 8080:8080 flaskapp
 
   dast-zap:
     runs-on: ubuntu-latest
@@ -79,9 +82,9 @@ jobs:
 
       - name: Executar OWASP ZAP - DAST
         run: |
-          docker run -u zap -v ${{ github.workspace }}:/zap/wrk \
+          docker run --rm --network zapnet -u root -v ${{ github.workspace }}:/zap/wrk \
             -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
-            -t http://host.docker.internal:8080 \
+            -t http://flaskapp_container:8080 \
             -r zap_report.html
 
       - name: Upload do relatório ZAP
