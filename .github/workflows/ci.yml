@@ -29,27 +29,23 @@ jobs:
           export PYTHONPATH=$PYTHONPATH:${{ github.workspace }}/todo_project
           python -m unittest discover -s todo_project/tests -p "test_*.py"
 
-      - name: Análise Estática com Bandit
+      - name: Bandit - SAST
         run: |
           pip install bandit
           bandit -r todo_project --exit-zero
 
-      - name: Criar diretório de relatório do Dependency-Check
-        run: mkdir -p dependency-check-report
-
-      - name: OWASP Dependency-Check
+      - name: Dependency-Check
         run: |
-          docker pull owasp/dependency-check
+          mkdir -p dependency-check-report
           docker run --rm \
             -v ${{ github.workspace }}:/project \
             owasp/dependency-check \
             --project "FlaskApp" \
             --scan /project \
             --format "ALL" \
-            --disableAssembly --disableRetireJS --disableCentral \
             --out /project/dependency-check-report || true
 
-      - name: Upload do relatório do Dependency-Check
+      - name: Upload Dependency Report
         uses: actions/upload-artifact@v4
         with:
           name: dependency-check-report
@@ -63,25 +59,25 @@ jobs:
       - name: Checkout do código
         uses: actions/checkout@v3
 
-      - name: Criar rede Docker customizada (caso precise no futuro)
+      - name: Criar rede Docker customizada
         run: docker network create zapnet || true
 
-      - name: Build da imagem Docker da aplicação
+      - name: Build da aplicação Flask
         run: docker build -t flaskapp .
 
-      - name: Rodar container da aplicação Flask
-        run: docker run -d --name flaskapp_container -p 8080:8080 flaskapp
+      - name: Rodar aplicação Flask na rede zapnet
+        run: docker run -d --rm --name flaskapp_container --network zapnet -p 8080:8080 flaskapp
 
-      - name: Aguardar aplicação iniciar
+      - name: Aguardar app iniciar
         run: sleep 10
 
-      - name: Executar OWASP ZAP - DAST
+      - name: Executar ZAP apontando para flaskapp_container
         run: |
-          docker run --rm \
-            -u zap \
+          docker run --rm --network zapnet \
+            -u root \
             -v ${{ github.workspace }}:/zap/wrk \
             ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
-            -t http://host.docker.internal:8080 \
+            -t http://flaskapp_container:8080 \
             -r zap_report.html
 
       - name: Upload do relatório do ZAP
